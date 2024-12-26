@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using SFML.Graphics;
+﻿using SFML.Graphics;
 using SFML.Learning;
 using SFML.System;
 using SFML.Window;
+using System;
 
 namespace ConsoleApp1_SFML
 {
     internal partial class Program : Game
     {
-
+        static string bgImg = LoadTexture("background.png");
         static (uint, uint) wndSize = (800, 800);
         static string wndTitle = "Meow runner";
 
@@ -48,6 +43,8 @@ namespace ConsoleApp1_SFML
                 // 2. Очистка буфера и окна
                 ClearWindow(Color.Yellow);
 
+                DrawSprite(bgImg, 0, 0);
+
                 CheckLose();
                 if (!isLose)
                 {
@@ -69,9 +66,11 @@ namespace ConsoleApp1_SFML
                         foodX = rnd.Next((int)(0 + foodSizeX), (int)(wndSize.Item1 - foodSizeX));
                         foodY = rnd.Next((int)(0 + foodSizeY), (int)(wndSize.Item2 - foodSizeY));
                     }
-                    DrawFood();
+                    
                     #endregion
                 }
+                DrawPlayer();
+                DrawFood();
                 RestartGame();
                 DisplayWindow();
 
