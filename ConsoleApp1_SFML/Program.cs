@@ -6,32 +6,51 @@ using System;
 
 namespace ConsoleApp1_SFML
 {
+    internal enum Directions
+    {
+        Left, Right, Down, Up
+    }
+
     internal partial class Program : Game
     {
         static string bgImg = LoadTexture("background.png");
-        static (uint, uint) wndSize = (800, 800);
+        static string foodImg = LoadTexture("food.png");
+        static string playerTextures = LoadTexture("player.png");
+
+        static string bgMusic = LoadMusic("bg_music.wav");
+        static string meowSound = LoadSound("meow_sound.wav");
+        static string crashSound = LoadSound("cat_crash_sound.wav");
+
+        static (uint, uint) wndSize = (800, 600);
         static string wndTitle = "Meow runner";
 
         static uint scores = default;
+        static uint maxScores = default;
+        static uint lastMaxScores = default;
         static bool isLose = false;
+        static Directions direction = default;
 
         static float playerX = 150.0f;
-        static float playerY = 150.0f;
-        static float playerWidth = 40.0f;
-        static float playerHeight = 40.0f;
-        static float playerSpeed = 300.0f;
+        static float playerY = 250.0f;
+        static int playerWidth = 64;
+        static int playerHeight = 64;
+        static int playerSpeed = 300;
 
-        static float foodX = default;
-        static float foodY = default;
-        static float foodSizeX = 40.0f;
-        static float foodSizeY = 40.0f;
+        static int foodX = default;
+        static int foodY = default;
+        static int foodSizeX = 40;
+        static int foodSizeY = 40;
         static void Main(string[] args)
         {
             InitWindow(wndSize.Item1, wndSize.Item2, wndTitle);
 
+            SetFont("comic.ttf");
+
             Random rnd = new Random();
             foodX = rnd.Next(0, (int)(wndSize.Item1 - foodSizeX));
-            foodY = rnd.Next(0, (int)(wndSize.Item2 - foodSizeY));
+            foodY = rnd.Next(200+foodSizeY, (int)(wndSize.Item2 - foodSizeY));
+
+            PlayMusic(bgMusic, 5);
 
             while (true)
             {
@@ -43,14 +62,14 @@ namespace ConsoleApp1_SFML
                 // 2. Очистка буфера и окна
                 ClearWindow(Color.Yellow);
 
-                DrawSprite(bgImg, 0, 0);
 
-                CheckLose();
-                if (!isLose)
-                {
-                    #region 3. Отрисовка буфера на окне                    
+                #region 3. Отрисовка буфера на окне 
+                DrawSprite(bgImg, 0, 0);
+                DisplayScores();
+                if (isLose == false)
+                {                                       
                     DrawPlayer();
-                    CheckLose();
+                    //CheckLose();
                     PlayerMove();
                     if (playerX + playerWidth > foodX
                         &&
@@ -61,19 +80,33 @@ namespace ConsoleApp1_SFML
                         playerY < foodY + foodSizeY)
                     {
                         scores++;
-                        playerSpeed += 10.0f;
+                        PlaySound(meowSound, 20);
+                        playerSpeed += 50;
                         Console.WriteLine($"Cookies: {scores}");
-                        foodX = rnd.Next((int)(0 + foodSizeX), (int)(wndSize.Item1 - foodSizeX));
-                        foodY = rnd.Next((int)(0 + foodSizeY), (int)(wndSize.Item2 - foodSizeY));
+                        foodX = rnd.Next(0 + foodSizeX, (int)(wndSize.Item1 - foodSizeX));
+                        foodY = rnd.Next(200 + foodSizeY, (int)(wndSize.Item2 - foodSizeY));
                     }
-                    
-                    #endregion
+                    CheckLose();                    
                 }
                 DrawPlayer();
-                DrawFood();
+                DrawSprite(foodImg, foodX, foodY);
+                if (isLose)
+                {
+                    SetFillColor(Color.Red);
+                    DrawText(193, 300, "Game Over", 80);
+                    if (lastMaxScores > scores)
+                    {
+                        DrawText(193, 500, $"Highest result: {lastMaxScores}", 40);
+                    }
+                    else 
+                    {
+                        DrawText(193, 500, $"Highest result: {scores}", 40);
+                        lastMaxScores = scores;
+                    }
+                }
                 RestartGame();
                 DisplayWindow();
-
+                #endregion
                 // 4. Ожидание
                 Delay(1);
             }
@@ -81,50 +114,62 @@ namespace ConsoleApp1_SFML
         static void GetMousePosition(RenderWindow rw)
         {
             // Получаем позицию курсора мыши
-
             Vector2i mousePosition = Mouse.GetPosition(rw);
 
             Console.WriteLine($"Mouse Position: X = {mousePosition.X}, Y = {mousePosition.Y}");
-
         }
         #region player Methods
         static void DrawPlayer()
         {
-            FillRectangle(playerX, playerY, playerWidth, playerHeight);
+            if (direction == Directions.Right)
+            DrawSprite(playerTextures, playerX,playerY,0,0, playerWidth, playerHeight);
+            if (direction == Directions.Left)
+                DrawSprite(playerTextures, playerX, playerY, 64, 0, playerWidth, playerHeight);
+            if (direction == Directions.Up)
+                DrawSprite(playerTextures, playerX, playerY, 64, 64, playerWidth, playerHeight);
+            if (direction == Directions.Down)
+                DrawSprite(playerTextures, playerX, playerY, 0, 64, playerWidth, playerHeight);
         }
         static void PlayerMove()
         {
             if (Keyboard.IsKeyPressed(Keyboard.Key.W))
+            {
+                direction = Directions.Up;
                 playerY -= playerSpeed * DeltaTime;
+            }
 
-            if (Keyboard.IsKeyPressed(Keyboard.Key.S))
+            else if (Keyboard.IsKeyPressed(Keyboard.Key.S))
+            {
+                direction = Directions.Down;
                 playerY += playerSpeed * DeltaTime;
+            }
 
-            if (Keyboard.IsKeyPressed(Keyboard.Key.A))
+            else if (Keyboard.IsKeyPressed(Keyboard.Key.A))
+            {
+                direction = Directions.Left;
                 playerX -= playerSpeed * DeltaTime;
+            }
 
-            if (Keyboard.IsKeyPressed(Keyboard.Key.D))
+            else if (Keyboard.IsKeyPressed(Keyboard.Key.D))
+            {
+                direction = Directions.Right;
                 playerX += playerSpeed * DeltaTime;
-        }
-        #endregion
-        #region food Methods
-        static void DrawFood()
-        {
-            FillRectangle(foodX, foodY, foodSizeX, foodSizeY);
+            }
         }
         #endregion
 
         static void CheckLose()
         {
-            if (playerX < 0 || playerY < 0 || playerX + playerWidth > wndSize.Item1 || playerY + playerHeight > wndSize.Item2)
+            if (playerX < 0 || playerY < 150 || playerX + playerWidth > wndSize.Item1 || playerY + playerHeight > wndSize.Item2)
             {
                 Console.WriteLine("Loose");
-                isLose = true;
+                PlaySound(crashSound, 10);                
+                isLose = true;                
             }
         }
         static void RestartGame()
         {
-            if (isLose) 
+            if (isLose)
             {
                 if (GetKeyDown(Keyboard.Key.R))
                 {
@@ -132,10 +177,16 @@ namespace ConsoleApp1_SFML
                     isLose = false;
 
                     playerX = 150.0f;
-                    playerY = 150.0f;
-                    playerSpeed = 300.0f;
+                    playerY = 250.0f;
+                    playerSpeed = 300;
                 }
             }
+        }
+
+        static void DisplayScores()
+        {
+            SetFillColor(Color.Blue);
+            DrawText(20, 20, $"Scores: {scores}", 24);
         }
     }
 }
